@@ -1,8 +1,8 @@
-# ⬡ Maya Suite Pro for Maya
+# ⬡ Maya Suite Pro
 
-> **Blender-style modeling tools inside Autodesk Maya — built with code vibing.**
+> **Professional modeling tools for Autodesk Maya — built with code vibing.**
 
-A fully open-source Maya Python toolkit that brings the speed and feel of Blender's modeling workflow into Maya. Every tool was designed with one goal: reduce the number of clicks between your idea and your mesh.
+A fully open-source Maya Python toolkit that brings a fast, artist-friendly modeling workflow into Maya. Every tool was designed with one goal: reduce the number of clicks between your idea and your mesh.
 
 ---
 
@@ -10,7 +10,7 @@ A fully open-source Maya Python toolkit that brings the speed and feel of Blende
 
 This project is **MIT licensed** — which means you can use it, modify it, bundle it into your own plugins, sell it as part of a commercial toolset, ship it inside a studio pipeline, or build something entirely new on top of it. No strings attached.
 
-> *"Open source is for everyone. If pro TDs want to wrap this into their own shelf tools or paid plugins — go for it. That's exactly what open source is for."*
+> *"Open source is for everyone. If pro TDs want to wrap Maya Suite Pro into their own shelf tools or paid plugins — go for it. That's exactly what open source is for."*
 > — Mouad
 
 The only ask: if you build something cool with it, consider sharing it back. A star, a PR, or even a French translation of the UI goes a long way.
@@ -29,22 +29,22 @@ The only ask: if you build something cool with it, consider sharing it back. A s
 **Option A — Run once (Script Editor)**
 1. Open Maya's Script Editor (`Windows → General Editors → Script Editor`)
 2. Set the tab to **Python**
-3. Paste the entire contents of `blender_suite_pro.py`
+3. Paste the entire contents of `maya_suite_pro.py`
 4. Press `Ctrl+Enter` to execute
 
 **Option B — Add to shelf (permanent)**
 1. Run the script once as above
 2. In the Script Editor, select all the code
 3. Hold `Ctrl` and middle-mouse-drag it onto your shelf
-4. Rename the shelf button to anything you like
+4. Rename the shelf button to **Maya Suite Pro** or anything you like
 
 **Option C — Startup (auto-load every session)**
-1. Copy `blender_suite_pro.py` into your Maya scripts directory:
+1. Copy `maya_suite_pro.py` into your Maya scripts directory:
    - Windows: `Documents/maya/<version>/scripts/`
    - macOS/Linux: `~/maya/<version>/scripts/`
 2. Add this line to your `userSetup.py`:
    ```python
-   import blender_suite_pro
+   import maya_suite_pro
    ```
 
 ### Basic Workflow
@@ -67,7 +67,7 @@ Fills an open polygon hole with a clean, all-quad grid that follows the surface 
 
 **The logic:**
 
-Maya's built-in Fill Hole (`Mesh → Fill Hole`) produces an n-gon — one huge polygon with as many sides as the hole has edges. That's useless for subdivision workflows. Quad Fill Pro solves this with a two-stage approach:
+Maya's built-in Fill Hole (`Mesh → Fill Hole`) produces an n-gon — one huge polygon with as many sides as the hole has edges. That's useless for subdivision workflows. Maya Suite Pro's Quad Fill solves this with a two-stage approach:
 
 1. **Topological Edge Walker** — Given a selection of border edges, the tool walks the adjacency graph edge-by-edge to reconstruct the *ordered* boundary loop. This is non-trivial because Maya's selection API returns edges in arbitrary order. The walker builds a dictionary of `{vertex: [neighbors]}` from the edge list, then physically walks the chain from a start vertex, always choosing the neighbor that wasn't the previous step. This guarantees a clean, consecutive boundary with no jumps or duplicates.
 
@@ -135,8 +135,8 @@ for n in reversed(history):
 Reversed history gives us the *most recent* node first, which is always the one we just created.
 
 The `keepFacesTogether` attribute on the node is what controls grouped vs individual behaviour:
-- `keepFacesTogether = 1` → all faces share new edge loops (Blender's default "Inset Faces")
-- `keepFacesTogether = 0` → each face insets independently into its own island (Blender's "Individual Faces" option, `I` key)
+- `keepFacesTogether = 1` → all faces share new edge loops (grouped inset — default)
+- `keepFacesTogether = 0` → each face insets independently into its own island (individual faces mode)
 
 The checkbox passes its value through `int()` before `setAttr` — this matters because Maya's checkbox callback delivers a Python float (`1.0` / `0.0`) and `setAttr` on an integer attribute will silently fail or behave unexpectedly with floats depending on the Maya version.
 
@@ -145,13 +145,13 @@ The checkbox passes its value through `int()` before `setAttr` — this matters 
 ### ⬡ Extract Faces — Live Offset
 
 **What it does:**
-Detaches selected faces from the mesh as a separate piece, with an optional offset to physically move them away from the surface. Mirrors Blender's `P → Separate` workflow.
+Detaches selected faces from the mesh as a separate piece, with an optional offset to physically move them away from the surface.
 
 **The logic:**
 
 `polyChipOff` is Maya's detach-faces command. The `dup=True` flag creates a copy of the faces rather than deleting them from the source (if you want destructive extraction, set `dup=False`). The `off` parameter moves the extracted faces along their average normal direction.
 
-The node-based approach means the offset is live and non-destructive until you hit Apply. `polySeparate` then splits the combined mesh into individual transform nodes per shell. The cleanup step (`makeIdentity`, `xform centerPivots`) ensures the extracted pieces have clean transforms and centered pivots, exactly like Blender's behaviour after a separation.
+The node-based approach means the offset is live and non-destructive until you hit Apply. `polySeparate` then splits the combined mesh into individual transform nodes per shell. The cleanup step (`makeIdentity`, `xform centerPivots`) ensures the extracted pieces have clean transforms and centered pivots — ready to use immediately.
 
 ---
 
@@ -199,7 +199,7 @@ The best contribution right now is a **French translation** of all UI labels and
 Other ways to help:
 - **Bug reports** — open an Issue with your Maya version and what went wrong
 - **Bug fixes** — fork, fix, and open a Pull Request
-- **New tools** — Bridge, Loop Select, Relax — anything Blender has that Maya makes painful
+- **New tools** — Bridge, Loop Select, Relax — anything Maya makes unnecessarily painful
 - **Maya version testing** — especially 2016–2019 compatibility
 
 ---
@@ -208,6 +208,9 @@ Other ways to help:
 
 **Mouad**
 Built with curiosity, Maya's Python API docs, and a lot of code vibing.
+
+> Maya Suite Pro started as a personal shelf tool and grew into something worth sharing.
+> If it saves you time, that's enough.
 
 ---
 
