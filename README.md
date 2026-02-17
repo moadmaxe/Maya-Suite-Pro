@@ -1,4 +1,4 @@
-# ⬡ Blender Suite Pro for Maya
+# ⬡ Maya Suite Pro for Maya
 
 > **Blender-style modeling tools inside Autodesk Maya — built with code vibing.**
 
