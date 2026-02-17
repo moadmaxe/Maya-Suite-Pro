@@ -1,6 +1,6 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║              BLENDER SUITE PRO FOR MAYA  –  v2.0                             ║
+║              MAYA SUITE PRO FOR MAYA  –  v2.0                                ║
 ║                                                                              ║
 ║  Author  : Mouad EL MENDILI                                                  ║
 ║  Contact : Moadmaxe@gmail.com                                                ║
@@ -10,11 +10,11 @@
 ║  If you speak French, the easiest way to contribute is to translate          ║
 ║  the UI labels and warning messages to French, then open a Pull Request.     ║
 ║  Bug reports and fixes are always welcome too!                               ║
-║  → github.com/mouad/blender-suite-pro  (replace with your actual URL)        ║
+║  → github.com/mouad/Maya-Suite-Pro  (replace with your actual URL)           ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 TOOLS INCLUDED:
-  • Vertex Bevel      – live sliders, Blender-style vertex mode
+  • Vertex Bevel      – live sliders, Maya-style vertex mode
   • Inset Faces       – fixed offset behaviour, individual face toggle
   • Extract Faces     – chip off with live offset
   • Separate Parts    – one-click poly separate
@@ -25,7 +25,7 @@ TOOLS INCLUDED:
 
 CHANGELOG v2.0:
   - Merged Quad Fill Pro into main window (top section)
-  - Replaced old bevel with BlenderStyleBevel (vertexComponent flag fix)
+  - Replaced old bevel with MayaStyleBevel (vertexComponent flag fix)
   - Fixed Inset tool (offset clamp, keepFacesTogether logic corrected)
   - Removed Loop Cut, Knife, Spin (unused)
   - Full UI overhaul: dark theme, colour-coded sections, emoji icons
@@ -89,7 +89,7 @@ def get_objects():
     return cmds.ls(sl=True, type='transform') or []
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ① VERTEX BEVEL  (BlenderStyle – live sliders, vertexComponent flag fix)
+# ① VERTEX BEVEL  (MayaStyle – live sliders, vertexComponent flag fix)
 # ─────────────────────────────────────────────────────────────────────────────
 def bevel_live():
     WIN = "bsp_bevel_live"
@@ -182,7 +182,7 @@ def inset_live():
               align='left', height=28)
 
     # ── Create extrude node ──
-    # keepFacesTogether=1 → shared inset (Blender default)
+    # keepFacesTogether=1 → shared inset (Maya default)
     # localTranslateZ=0   → no extrusion, pure inset
     cmds.polyExtrudeFacet(faces, keepFacesTogether=1,
                           localTranslateZ=0, offset=0.2, ch=True)
@@ -648,7 +648,7 @@ def main_ui():
     if cmds.window(WIN, q=True, exists=True):
         cmds.deleteUI(WIN)
 
-    w = cmds.window(WIN, title="  Blender Suite Pro  –  Mouad",
+    w = cmds.window(WIN, title="  Maya Suite Pro  –  Mouad",
                     widthHeight=(440, 760), sizeable=True,
                     backgroundColor=C["window_bg"])
 
@@ -657,7 +657,7 @@ def main_ui():
 
     # ── MASTER HEADER ───────────────────────────────────────────────────────
     cmds.text(
-        label="  ⬡  BLENDER SUITE PRO  –  v2.0",
+        label="  ⬡  MAYA SUITE PRO  –  v2.0",
         backgroundColor=(0.08, 0.12, 0.22),
         height=36,
         font='boldLabelFont',
