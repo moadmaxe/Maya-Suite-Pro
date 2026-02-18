@@ -558,52 +558,59 @@ class QuadFillPro:
 
         vpos = self.hole_pos[offset:] + self.hole_pos[:offset]
 
-        if self.preview_plane and cmds.objExists(self.preview_plane):
-            cmds.delete(self.preview_plane)
-        self.preview_plane = cmds.polyPlane(w=1, h=1, sx=Sx, sy=Sy, ch=False,
-                                            name="QuadFillPreview")[0]
+        # ── Wrap everything in ONE undo chunk so Ctrl+Z jumps back
+        #    in a single step instead of undoing every slider tick ──
+        cmds.undoInfo(openChunk=True, chunkName="QuadFillPreview")
+        try:
+            if self.preview_plane and cmds.objExists(self.preview_plane):
+                cmds.delete(self.preview_plane)
+            self.preview_plane = cmds.polyPlane(w=1, h=1, sx=Sx, sy=Sy, ch=False,
+                                                name="QuadFillPreview")[0]
 
-        # Build boundary index list on the plane
-        plane_bnd = []
-        for x in range(0, Sx+1):          plane_bnd.append(x)
-        for y in range(1, Sy):             plane_bnd.append(y*(Sx+1) + Sx)
-        for x in range(Sx, -1, -1):       plane_bnd.append(Sy*(Sx+1) + x)
-        for y in range(Sy-1, 0, -1):      plane_bnd.append(y*(Sx+1))
+            # Build boundary index list on the plane
+            plane_bnd = []
+            for x in range(0, Sx+1):          plane_bnd.append(x)
+            for y in range(1, Sy):             plane_bnd.append(y*(Sx+1) + Sx)
+            for x in range(Sx, -1, -1):       plane_bnd.append(Sy*(Sx+1) + x)
+            for y in range(Sy-1, 0, -1):      plane_bnd.append(y*(Sx+1))
 
-        for k in range(num_v):
-            cmds.xform(f"{self.preview_plane}.vtx[{plane_bnd[k]}]",
-                       ws=True, t=vpos[k])
+            for k in range(num_v):
+                cmds.xform(f"{self.preview_plane}.vtx[{plane_bnd[k]}]",
+                           ws=True, t=vpos[k])
 
-        # Coons-patch interior
-        c00 = vpos[0]
-        c10 = vpos[Sx]
-        c11 = vpos[Sx + Sy]
-        c01 = vpos[2*Sx + Sy]
+            # Coons-patch interior
+            c00 = vpos[0]
+            c10 = vpos[Sx]
+            c11 = vpos[Sx + Sy]
+            c01 = vpos[2*Sx + Sy]
 
-        bottom_curve   = vpos[0        : Sx+1]
-        right_curve    = vpos[Sx       : Sx+Sy+1]
-        top_curve_rev  = list(reversed(vpos[Sx+Sy : 2*Sx+Sy+1]))
-        left_curve_rev = list(reversed(vpos[2*Sx+Sy:] + vpos[:1]))
+            bottom_curve   = vpos[0        : Sx+1]
+            right_curve    = vpos[Sx       : Sx+Sy+1]
+            top_curve_rev  = list(reversed(vpos[Sx+Sy : 2*Sx+Sy+1]))
+            left_curve_rev = list(reversed(vpos[2*Sx+Sy:] + vpos[:1]))
 
-        total = (Sx+1) * (Sy+1)
-        bnd_set = set(plane_bnd)
-        for idx in range(total):
-            if idx in bnd_set:
-                continue
-            col = idx % (Sx+1)
-            row = idx // (Sx+1)
-            u = col / float(Sx)
-            v = row / float(Sy)
-            B = bottom_curve[col]   if col < len(bottom_curve)   else bottom_curve[-1]
-            T = top_curve_rev[col]  if col < len(top_curve_rev)  else top_curve_rev[-1]
-            L = left_curve_rev[row] if row < len(left_curve_rev) else left_curve_rev[-1]
-            R = right_curve[row]    if row < len(right_curve)     else right_curve[-1]
-            P = [
-                (1-u)*L[i] + u*R[i] + (1-v)*B[i] + v*T[i]
-                - ((1-u)*(1-v)*c00[i] + u*(1-v)*c10[i] + (1-u)*v*c01[i] + u*v*c11[i])
-                for i in range(3)
-            ]
-            cmds.xform(f"{self.preview_plane}.vtx[{idx}]", ws=True, t=P)
+            total = (Sx+1) * (Sy+1)
+            bnd_set = set(plane_bnd)
+            for idx in range(total):
+                if idx in bnd_set:
+                    continue
+                col = idx % (Sx+1)
+                row = idx // (Sx+1)
+                u = col / float(Sx)
+                v = row / float(Sy)
+                B = bottom_curve[col]   if col < len(bottom_curve)   else bottom_curve[-1]
+                T = top_curve_rev[col]  if col < len(top_curve_rev)  else top_curve_rev[-1]
+                L = left_curve_rev[row] if row < len(left_curve_rev) else left_curve_rev[-1]
+                R = right_curve[row]    if row < len(right_curve)     else right_curve[-1]
+                P = [
+                    (1-u)*L[i] + u*R[i] + (1-v)*B[i] + v*T[i]
+                    - ((1-u)*(1-v)*c00[i] + u*(1-v)*c10[i] + (1-u)*v*c01[i] + u*v*c11[i])
+                    for i in range(3)
+                ]
+                cmds.xform(f"{self.preview_plane}.vtx[{idx}]", ws=True, t=P)
+
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
     # ── Finalize ─────────────────────────────────────────────────────────────
     def _finalize(self, *_):
