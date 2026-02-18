@@ -10,7 +10,7 @@
 ║  If you speak French, the easiest way to contribute is to translate          ║
 ║  the UI labels and warning messages to French, then open a Pull Request.     ║
 ║  Bug reports and fixes are always welcome too!                               ║
-║  → github.com/mouad/Maya-Suite-Pro  (replace with your actual URL)           ║
+║  → github.com/moadmaxe/Maya-Suite-Pro                                        ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 TOOLS INCLUDED:
