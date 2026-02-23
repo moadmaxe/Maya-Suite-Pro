@@ -1120,6 +1120,16 @@ def apply_group_action(*args):
     process_group_add(base, group)
     cmds.deleteUI(RENAME_POPUP)
 
+def build_rename_main():
+    if cmds.window(RENAME_MAIN, exists=True):
+        cmds.deleteUI(RENAME_MAIN)
+    cmds.window(RENAME_MAIN, title="Smart Rename Tool", widthHeight=(260, 140), sizeable=True)
+    cmds.scrollLayout(childResizable=True)
+    cmds.columnLayout(adj=True, rowSpacing=10)
+    cmds.button(label="Rename All Selected", height=40, command=rename_only)
+    cmds.button(label="Add To Group", height=40, command=open_group_popup)
+    cmds.showWindow(RENAME_MAIN)
+
 def split_by_group(selection, group):
     inside = []
     outside = []
