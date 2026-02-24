@@ -972,7 +972,7 @@ def select_shortest_path_custom(*args):
                        pos="topCenter", fade=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ⑧ SMART RENAME TOOL – COMPLETE WITH FIXED ADD TO GROUP POPUP
+# ⑧ SMART RENAME TOOL – COMPLETE & CLEAN
 # ─────────────────────────────────────────────────────────────────────────────
 RENAME_MAIN = "RenameGroupMain"
 RENAME_POPUP = "GroupPopup"
@@ -1032,7 +1032,6 @@ def rename_only(*args):
         if name:
             rename_objects(name)
 
-# ----- FIXED ADD TO GROUP POPUP (scrollable, resizable, colored, with lambda fix) -----
 def open_group_popup(*args):
     if cmds.window(RENAME_POPUP, exists=True):
         cmds.deleteUI(RENAME_POPUP)
@@ -1086,50 +1085,6 @@ def open_group_popup(*args):
 
     cmds.showWindow(RENAME_POPUP)
 
-def apply_group_action(*args):
-    sel = cmds.ls(sl=True)
-    if not sel:
-        cmds.warning("Select objects first.")
-        return
-    existing = cmds.radioButton("existingRB", q=True, select=True)
-    if existing:
-        selected = cmds.textScrollList("groupList", q=True, selectItem=True)
-        if not selected or "-- No Groups" in selected[0]:
-            cmds.warning("Select a valid group.")
-            return
-        group = selected[0]
-        auto = cmds.checkBox("autoNameCB", q=True, value=True)
-        if auto:
-            base = group  # Use group name as base (no suffix removal)
-        else:
-            base = cmds.textField("nameField", q=True, text=True)
-            if not base:
-                cmds.warning("Enter a name.")
-                return
-    else:
-        base = cmds.textField("nameField", q=True, text=True)
-        if not base:
-            cmds.warning("Name required.")
-            return
-        # New group: name is exactly what user typed
-        desired_group = base
-        if cmds.objExists(desired_group):
-            group = desired_group
-        else:
-            group = cmds.group(em=True, name=desired_group)
-    process_group_add(base, group)
-    cmds.deleteUI(RENAME_POPUP)
-
-def build_rename_main():
-    if cmds.window(RENAME_MAIN, exists=True):
-        cmds.deleteUI(RENAME_MAIN)
-    cmds.window(RENAME_MAIN, title="Smart Rename Tool", widthHeight=(260, 140), sizeable=True)
-    cmds.scrollLayout(childResizable=True)
-    cmds.columnLayout(adj=True, rowSpacing=10)
-    cmds.button(label="Rename All Selected", height=40, command=rename_only)
-    cmds.button(label="Add To Group", height=40, command=open_group_popup)
-    cmds.showWindow(RENAME_MAIN)
-
 def split_by_group(selection, group):
     inside = []
     outside = []
@@ -1141,16 +1096,56 @@ def split_by_group(selection, group):
             outside.append(obj)
     return inside, outside
 
+def rename_and_parent(base, group, objects):
+    start = next_index(base)
+    renamed = []
+    for i, obj in enumerate(objects, start):
+        new = f"{base}_{i:03d}"
+        new = cmds.rename(obj, new)
+        shapes = cmds.listRelatives(new, s=True, f=True) or []
+        for s in shapes:
+            try:
+                cmds.rename(s, new + "Shape")
+            except:
+                pass
+        try:
+            cmds.parent(new, group)
+        except:
+            pass
+        renamed.append(new)
+    cmds.select(renamed)
+
+def process_group_add(base, group):
+    sel = cmds.ls(sl=True, transforms=True)
+    if not sel:
+        cmds.warning("Nothing selected.")
+        return
+    inside, outside = split_by_group(sel, group)
+    if inside and outside:
+        msg = "Already inside group:\n\n" + "\n".join(inside)
+        result = cmds.confirmDialog(
+            title="Objects already in group",
+            message=msg,
+            button=["Rename ALL", "Add Missing Only", "Unselect Existing", "Cancel"],
+            defaultButton="Add Missing Only",
+            cancelButton="Cancel"
+        )
+        if result == "Cancel":
+            return
+        if result == "Unselect Existing":
+            cmds.select(outside)
+            return
+        if result == "Add Missing Only":
+            sel = outside
+    rename_and_parent(base, group, sel)
+
 def apply_group_action(*args):
     sel = cmds.ls(sl=True)
-    print(f"\n=== apply_group_action ===")
-    print(f"selection = {sel}")
     if not sel:
         cmds.warning("Select objects first.")
         return
     existing = cmds.radioButton("existingRB", q=True, select=True)
     if existing:
-        # Existing group logic (unchanged)
         selected = cmds.textScrollList("groupList", q=True, selectItem=True)
         if not selected or "-- No Groups" in selected[0]:
             cmds.warning("Select a valid group.")
@@ -1164,7 +1159,6 @@ def apply_group_action(*args):
             if not base:
                 cmds.warning("Enter a name.")
                 return
-        print(f"Existing group: group='{group}', base='{base}', auto={auto}")
         process_group_add(base, group)
     else:
         base = cmds.textField("nameField", q=True, text=True)
@@ -1173,86 +1167,12 @@ def apply_group_action(*args):
             return
         desired_group = base
         auto = cmds.checkBox("autoNameCB", q=True, value=True)
-        print(f"New group: base='{base}', desired_group='{desired_group}', auto={auto}")
 
-        if auto:
-            # Rename selected objects with base and sequential numbers
-            start = next_index(base)
-            renamed = []
-            for i, obj in enumerate(sel, start):
-                new_name = f"{base}_{i:03d}"
-                print(f"  renaming {obj} to {new_name}")
-                try:
-                    new = cmds.rename(obj, new_name)
-                except Exception as e:
-                    print(f"  rename failed: {e}")
-                    continue
-                # Rename shapes
-                shapes = cmds.listRelatives(new, s=True, f=True) or []
-                for s in shapes:
-                    try:
-                        cmds.rename(s, new + "Shape")
-                    except:
-                        pass
-                renamed.append(new)
-            # Group all renamed objects with desired group name
-            if renamed:
-                group = cmds.group(renamed, name=desired_group)
-                print(f"Created group '{group}' with objects {renamed}")
-                cmds.select(renamed)
-            else:
-                cmds.warning("No objects were renamed.")
-        else:
-            # No renaming, just group the original selection
-            group = cmds.group(sel, name=desired_group)
-            print(f"Created group '{group}' with original objects")
-            cmds.select(sel)
-
-    cmds.deleteUI(RENAME_POPUP)
-
-# ----- FIXED APPLY_GROUP_ACTION (reads from scrollable list, new group name without "_Collection") -----
-def apply_group_action(*args):
-    sel = cmds.ls(sl=True)
-    print(f"\n=== apply_group_action ===")
-    print(f"selection = {sel}")
-    if not sel:
-        cmds.warning("Select objects first.")
-        return
-    existing = cmds.radioButton("existingRB", q=True, select=True)
-    if existing:
-        # Existing group logic (unchanged)
-        selected = cmds.textScrollList("groupList", q=True, selectItem=True)
-        if not selected or "-- No Groups" in selected[0]:
-            cmds.warning("Select a valid group.")
-            return
-        group = selected[0]
-        auto = cmds.checkBox("autoNameCB", q=True, value=True)
-        if auto:
-            base = group
-        else:
-            base = cmds.textField("nameField", q=True, text=True)
-            if not base:
-                cmds.warning("Enter a name.")
-                return
-        print(f"Existing group: group='{group}', base='{base}', auto={auto}")
-        process_group_add(base, group)
-    else:
-        base = cmds.textField("nameField", q=True, text=True)
-        if not base:
-            cmds.warning("Name required.")
-            return
-        desired_group = base
-        auto = cmds.checkBox("autoNameCB", q=True, value=True)
-        print(f"New group: base='{base}', desired_group='{desired_group}', auto={auto}")
-
-        # Check if group already exists
+        # Create or reuse group
         if cmds.objExists(desired_group):
             group = desired_group
-            print(f"Group '{desired_group}' already exists, reusing.")
         else:
-            # Create empty group first
-            group = cmds.group(empty=True, name=desired_group)
-            print(f"Created empty group: '{group}'")
+            group = cmds.group(em=True, name=desired_group)
 
         if auto:
             # Rename selected objects with base and sequential numbers
@@ -1260,13 +1180,10 @@ def apply_group_action(*args):
             renamed = []
             for i, obj in enumerate(sel, start):
                 new_name = f"{base}_{i:03d}"
-                print(f"  renaming {obj} to {new_name}")
                 try:
                     new = cmds.rename(obj, new_name)
-                except Exception as e:
-                    print(f"  rename failed: {e}")
+                except:
                     continue
-                # Rename shapes
                 shapes = cmds.listRelatives(new, s=True, f=True) or []
                 for s in shapes:
                     try:
@@ -1274,25 +1191,34 @@ def apply_group_action(*args):
                     except:
                         pass
                 renamed.append(new)
-            # Parent all renamed objects to the group
+            # Parent renamed objects to group
             for obj in renamed:
                 try:
                     cmds.parent(obj, group)
-                    print(f"  parented {obj} to {group}")
-                except Exception as e:
-                    print(f"  parenting failed: {e}")
-            cmds.select(renamed)
+                except:
+                    pass
+            if renamed:
+                cmds.select(renamed)
         else:
-            # No renaming, just parent original selection to group
+            # No renaming, just parent original selection
             for obj in sel:
                 try:
                     cmds.parent(obj, group)
-                    print(f"  parented {obj} to {group}")
-                except Exception as e:
-                    print(f"  parenting failed: {e}")
+                except:
+                    pass
             cmds.select(sel)
 
     cmds.deleteUI(RENAME_POPUP)
+
+def build_rename_main():
+    if cmds.window(RENAME_MAIN, exists=True):
+        cmds.deleteUI(RENAME_MAIN)
+    cmds.window(RENAME_MAIN, title="Smart Rename Tool", widthHeight=(260, 140), sizeable=True)
+    cmds.scrollLayout(childResizable=True)
+    cmds.columnLayout(adj=True, rowSpacing=10)
+    cmds.button(label="Rename All Selected", height=40, command=rename_only)
+    cmds.button(label="Add To Group", height=40, command=open_group_popup)
+    cmds.showWindow(RENAME_MAIN)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # UTILITIES
